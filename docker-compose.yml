@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: bolt-zap-db
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: boltzap
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  bitcoind:
+    # 1. 가장 널리 사용되고 검증된 표준 이미지로 교체합니다.
+    image: ruimarinho/bitcoin-core:22
+    container_name: bolt-zap-bitcoind
+    command:
+      - -testnet
+      - -txindex
+      - -rpcuser=myuser
+      - -rpcpassword=mypassword
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+    restart: unless-stopped
+
+  lnd:
+    image: lightninglabs/lnd:v0.17.0-beta
+    container_name: bolt-zap-lnd
+    depends_on:
+      - bitcoind
+    command:
+      - --bitcoin.active
+      - --bitcoin.node=bitcoind
+      - --bitcoin.testnet
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpcuser=myuser
+      - --bitcoind.rpcpass=mypassword
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      - --lnddir=/root/.lnd
+      - --rpclisten=0.0.0.0:10009
+      - --restlisten=0.0.0.0:8080
+      - --noseedbackup
+    ports:
+      - '8080:8080'
+      - '10009:10009'
+    volumes:
+      - lnd_data:/root/.lnd
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  lnd_data:
