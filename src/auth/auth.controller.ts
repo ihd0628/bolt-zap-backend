@@ -11,4 +11,11 @@ export class AuthController {
   signup(@Body() createUserDto: CreateUserDto) {
     return this.authService.signup(createUserDto);
   }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  login(@Body() loginDto: CreateUserDto) {
+    // 회원가입 DTO를 로그인 시에도 재사용합니다.
+    return this.authService.login(loginDto);
+  }
 }
